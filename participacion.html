@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Participación y Asistencia · IUB Docente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <script src="js/supabase-config.js"></script>
+  <script src="js/module-context.js"></script>
+  <script src="js/gamification-sdk.js"></script>
+  <script src="js/group-schedules.js"></script>
+  <script src="js/import-students-browser.js"></script>
+  <script src="js/teacher-auth.js"></script>
+  <script src="js/teacher-week-validator.js"></script>
+  <script src="js/academic-rules.js"></script>
+  <script src="js/student-dashboard.js"></script>
+  <script src="js/celebration.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    [hidden] { display:none !important; }
+    :root { --primary:#1E2843; --accent:#2d3a5e; --gold:#FFDF2D; --green:#2e7d32; --red:#c62828; --orange:#e65100; --light-bg:#FAFAFA; --card-bg:#fff; --text:#212121; --muted:#546e7a; --border:#DEDFE4; --radius:12px; }
+    body { font-family:'Open Sans', Arial, sans-serif; background:var(--light-bg); color:var(--text); line-height:1.55; }
+    header { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; padding:1.4rem 1.2rem; }
+    .wrap { max-width:1280px; margin:0 auto; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+    h1 { font-size:clamp(1.5rem,4vw,2.3rem); }
+    .nav { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .nav a, button, input, textarea, select { font-family:inherit; }
+    .nav a, button { border:1px solid var(--border); border-radius:10px; padding:.55rem .85rem; background:#fff; color:var(--primary); font-weight:800; text-decoration:none; cursor:pointer; font-size:.84rem; }
+    .btn-sm { padding:.3rem .6rem; font-size:.75rem; }
+    .btn-green { background:var(--green); color:#fff; border-color:var(--green); }
+    .btn-red { background:var(--red); color:#fff; border-color:var(--red); }
+    .btn-gold { background:var(--gold); color:var(--primary); border-color:var(--gold); }
+    .btn-outline { background:transparent; color:var(--primary); }
+    main { padding:1.2rem; }
+    .login { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem; max-width:420px; margin:2rem auto; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    label { display:block; color:var(--muted); font-size:.8rem; font-weight:800; text-transform:uppercase; margin-bottom:.3rem; }
+    input, textarea, select { width:100%; border:1px solid var(--border); border-radius:10px; padding:.65rem .8rem; font-size:.95rem; margin-bottom:.8rem; }
+    textarea { min-height:120px; resize:vertical; font-family:monospace; font-size:.82rem; }
+    .panel { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem; box-shadow:0 2px 10px rgba(0,0,0,.04); margin-bottom:1rem; }
+    .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1rem; }
+    .metric { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:1rem; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    .metric span { color:var(--muted); font-size:.78rem; font-weight:800; text-transform:uppercase; }
+    .metric strong { display:block; font-size:1.8rem; color:var(--primary); }
+    .tabs { display:flex; gap:.3rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .tab-btn { border:1px solid var(--border); border-radius:10px 10px 0 0; padding:.55rem 1rem; background:var(--light-bg); cursor:pointer; font-weight:700; font-size:.84rem; }
+    .tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    th { text-align:left; background:var(--primary); color:#fff; padding:.55rem .7rem; position:sticky; top:0; }
+    td { border-bottom:1px solid var(--border); padding:.5rem .7rem; vertical-align:middle; }
+    tr:nth-child(even) td { background:#f8f9fb; }
+    .att-btn { padding:.2rem .5rem; border-radius:6px; font-size:.72rem; font-weight:800; cursor:pointer; border:1px solid var(--border); background:#fff; }
+    .att-btn.p { background:#e8f5e9; color:#1b5e20; border-color:#a5d6a7; }
+    .att-btn.t { background:#fff3e0; color:#e65100; border-color:#ffb74d; }
+    .att-btn.f { background:#ffebee; color:#b71c1c; border-color:#ef9a9a; }
+    .att-btn.m { background:#e3f2fd; color:#0d47a1; border-color:#90caf9; }
+    .att-btn.i { background:#f3e5f5; color:#4a148c; border-color:#ce93d8; }
+    .att-btn.sel { box-shadow:0 0 0 2px var(--primary); }
+    .att-actions { display:flex; flex-wrap:wrap; gap:.2rem; }
+    .chips { display:flex; gap:.25rem; flex-wrap:wrap; }
+    .chip { border-radius:999px; border:1px solid var(--border); padding:.12rem .45rem; font-size:.7rem; font-weight:800; }
+    .chip.p { background:#e8f5e9; color:#1b5e20; }
+    .chip.t { background:#fff3e0; color:#e65100; }
+    .chip.f { background:#ffebee; color:#b71c1c; }
+    .toolbar { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.7rem; align-items:end; margin-bottom:.9rem; }
+    .actions-row { display:flex; gap:.5rem; flex-wrap:wrap; margin:.8rem 0; }
+    .msg { color:var(--muted); font-size:.9rem; margin:.7rem 0; min-height:1.3rem; }
+    .msg.ok { color:var(--green); }
+    .msg.err { color:var(--red); }
+    .preview-box { background:#f5f5f5; border-radius:var(--radius); padding:.8rem; font-family:monospace; font-size:.82rem; white-space:pre-wrap; max-height:200px; overflow-y:auto; }
+    .card-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media (max-width:760px) { .card-row { grid-template-columns:1fr; } table { min-width:700px; } .table-wrap { overflow-x:auto; } }
+    .group-layer { display:flex; justify-content:space-between; align-items:center; gap:1rem; background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; padding:.75rem 1rem; border-radius:10px; margin-bottom:.8rem; flex-wrap:wrap; }
+    .group-layer span { opacity:.85; font-size:.85rem; }
+    .att-summary-chips { display:flex; flex-wrap:wrap; gap:.5rem; margin:.6rem 0; }
+    .att-chip { display:inline-block; padding:.25rem .65rem; border-radius:999px; font-size:.78rem; font-weight:700; background:#f4f6fa; border:1px solid var(--border); }
+    .att-chip.ok { background:#e8f5e9; color:#1b5e20; }
+    .att-chip.risk { background:#fff8e1; color:#e65100; }
+    .att-chip.lost { background:#ffebee; color:#b71c1c; }
+    .iub-bar { height:10px; background:#E9EAED; border-radius:999px; overflow:hidden; margin-top:.25rem; }
+    .iub-bar-fill { height:100%; border-radius:999px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div>
+        <h1>Participación y Asistencia</h1>
+        <p id="moduleSubtitle">—</p>
+      </div>
+      <nav class="nav">
+        <a href="index.html">Módulos</a>
+        <a href="#live">Clase en vivo</a>
+        <a href="#validar-semana">Validar semana</a>
+        <a href="#report">Reporte</a>
+        <a href="profesor.html">Docente</a>
+        <a href="#" id="linkAhorcado" hidden>🎮 Ahorcado</a>
+        <a href="#importar-estudiantes">Importar estudiantes</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+
+    <section id="app">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('live')">Clase en Vivo</button>
+        <button class="tab-btn" onclick="showTab('attendance')">Asistencia</button>
+        <button class="tab-btn" onclick="showTab('history')">Historial</button>
+        <button class="tab-btn" onclick="showTab('validate')">Validar semana</button>
+        <button class="tab-btn" onclick="showTab('report')">Reporte</button>
+        <button class="tab-btn" onclick="showTab('config')">Configuracion</button>
+      </div>
+
+      <!-- TAB: Clase en Vivo -->
+      <div class="tab-panel active" id="tab-live">
+        <div class="summary">
+          <div class="metric"><span>Estudiantes cargados</span><strong id="mLiveStudents">0</strong></div>
+          <div class="metric"><span>Puntos hoy</span><strong id="mLivePoints">0</strong></div>
+          <div class="metric"><span>Participaron hoy</span><strong id="mLiveActive">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="toolbar">
+            <div><label for="liveGroup">Grupo</label><select id="liveGroup" onchange="renderLive()"><option value="">Todos</option></select></div>
+            <div><label for="liveSearch">Buscar</label><input id="liveSearch" placeholder="Nombre o CC" oninput="renderLive()"></div>
+          </div>
+          <div class="actions-row">
+            <button class="btn-gold" onclick="givePoints(1)">+1 Asistencia</button>
+            <button onclick="givePoints(3)">+3 Participacion</button>
+            <button onclick="givePoints(5)">+5 Destacado</button>
+            <button class="btn-red btn-sm" onclick="clearToday()">Limpiar hoy</button>
+          </div>
+          <p class="msg" id="liveMsg"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th style="width:40px">Sel</th><th>Estudiante</th><th>CC</th><th>Grupo</th><th>Pts Hoy</th><th>XP Total</th><th>Accion</th></tr></thead>
+              <tbody id="liveRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Asistencia -->
+      <div class="tab-panel" id="tab-attendance">
+        <div class="summary">
+          <div class="metric"><span>Presentes hoy</span><strong id="mAttPresent">0</strong></div>
+          <div class="metric"><span>Tardanza</span><strong id="mAttLate">0</strong></div>
+          <div class="metric"><span>Ausentes</span><strong id="mAttAbsent">0</strong></div>
+          <div class="metric"><span>Motivo</span><strong id="mAttMotivo">0</strong></div>
+          <div class="metric"><span>Incapacitado</span><strong id="mAttIncap">0</strong></div>
+          <div class="metric"><span>% Asistencia</span><strong id="mAttPct">0%</strong></div>
+        </div>
+        <div class="panel">
+          <div class="toolbar">
+            <div><label for="attGroup">Grupo</label><select id="attGroup" onchange="onAttGroupChange()"><option value="">Todos</option></select></div>
+            <div><label for="attDate">Fecha de clase</label>
+              <input id="attDate" type="date" onchange="updateAttDateHint(); renderAttendance();">
+              <div id="attSessionButtons" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem"></div>
+            </div>
+            <div style="grid-column:1/-1"><p id="attDateHint" class="msg" style="min-height:1rem;margin:0"></p></div>
+            <div><label for="attSearch">Buscar</label><input id="attSearch" placeholder="Nombre o CC" oninput="renderAttendance()"></div>
+          </div>
+          <div class="actions-row">
+            <button class="btn-green" onclick="markAllAttendance('P')">Todos Presentes</button>
+            <button onclick="markAllAttendance('T')">Todos Tardanza</button>
+            <button class="btn-red btn-sm" onclick="clearTodayAtt()">Limpiar dia</button>
+          </div>
+          <p class="msg" id="attMsg"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Estudiante</th><th>CC</th><th>Grupo</th><th>Estado</th><th>% Cuatri</th></tr></thead>
+              <tbody id="attRows"></tbody>
+            </table>
+          </div>
+          <div class="actions-row" style="margin-top:1rem">
+            <button onclick="exportAttendanceXLSX()">Exportar Excel (.xlsx)</button>
+            <button onclick="exportAttendanceCSV()">Exportar CSV (Academusoft)</button>
+            <button onclick="syncAttendanceToSupabase()">Sincronizar a Supabase</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- TAB: Validar XP semanal (celular) -->
+      <div class="tab-panel" id="tab-validate">
+        <div id="teacherWeekValidatorRoot"></div>
+      </div>
+
+      <!-- TAB: Historial -->
+      <div class="tab-panel" id="tab-history">
+        <div class="panel">
+          <div class="toolbar">
+            <div><label for="histSearch">Buscar</label><input id="histSearch" placeholder="Nombre o CC" oninput="renderHistory()"></div>
+          </div>
+          <p class="msg" id="histMsg"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha/Hora</th><th>Estudiante</th><th>CC</th><th>Tipo</th><th>Puntos</th></tr></thead>
+              <tbody id="histRows"></tbody>
+            </table>
+          </div>
+          <div class="actions-row">
+            <button onclick="exportHistory()">Exportar Historial (.tsv)</button>
+            <button class="btn-red btn-sm" onclick="clearHistory()">Borrar historial</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Reporte asistencia -->
+      <div class="tab-panel" id="tab-report">
+        <div class="panel">
+          <strong style="color:var(--primary)">Asistencia reglamentaria por grupo</strong>
+          <p class="msg" style="min-height:auto">Estudiantes en riesgo o con módulo perdido (máx. 10,4 h de inasistencia).</p>
+          <div id="teacherAttendancePanel"></div>
+        </div>
+        <div class="panel">
+          <strong style="color:var(--primary)">Progreso XP por grupo (Supabase)</strong>
+          <p class="msg">Módulo, horario y XP agregado por grupo matriculado.</p>
+          <div id="groupProgressPanel"></div>
+        </div>
+        <div class="panel">
+          <p style="color:var(--muted);font-size:.9rem;margin-bottom:.8rem">
+            Registro de cada toma de asistencia con fecha y hora exacta (local + nube).
+          </p>
+          <div class="actions-row">
+            <button class="btn-gold" onclick="renderReport()">Actualizar tabla</button>
+            <button onclick="fetchReportFromCloud()">Cargar desde Supabase</button>
+            <button class="btn-gold" onclick="exportReportXLSX()">Exportar Excel (.xlsx)</button>
+            <button onclick="exportReportCSV()">Exportar CSV</button>
+          </div>
+          <p class="msg" id="reportMsg"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha</th><th>Hora</th><th>Estudiante</th><th>CC</th><th>Grupo</th><th>Estado</th><th>Origen</th></tr></thead>
+              <tbody id="reportRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Configuracion -->
+      <div class="tab-panel" id="tab-config">
+        <div class="card-row">
+          <div class="panel" id="importar-estudiantes">
+            <h3 style="color:var(--primary);margin-bottom:.8rem">Importar lista de estudiantes</h3>
+            <p style="font-size:.84rem;color:var(--muted);margin-bottom:.7rem">Selecciona el reporte de estudiantes de Academusoft en PDF, TXT o CSV.</p>
+            <label for="importFile">Archivo</label>
+            <input id="importFile" type="file" accept=".pdf,.txt,.csv,application/pdf,text/plain,text/csv">
+            <div class="actions-row">
+              <button class="btn-gold" onclick="importSelectedFile()">Importar archivo</button>
+            </div>
+            <details style="margin:.8rem 0">
+              <summary style="cursor:pointer;color:var(--muted);font-weight:800;font-size:.82rem">O pegar texto manualmente</summary>
+              <textarea id="importText" placeholder="Pega aqui el texto del reporte...&#10;Ej: 1  CC - 1000000001  1000000001  ESTUDIANTE PRUEBA UNO"></textarea>
+              <button onclick="parseImportText()">Analizar texto pegado</button>
+            </details>
+            <p style="font-size:.72rem;color:var(--muted);margin-bottom:.6rem">Formato soportado: reporte Academusoft con columnas No., Documento, Codigo y Nombre Completo.</p>
+            <p class="msg" id="importMsg"></p>
+            <div class="preview-box" id="importPreview" hidden></div>
+            <div class="actions-row" id="importActions" hidden>
+              <button class="btn-green" id="importLoadBtn" onclick="loadImported()">Cargar N estudiantes</button>
+              <button class="btn-red btn-sm" onclick="cancelImport()">Cancelar</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3 style="color:var(--primary);margin-bottom:.8rem">Resumen de estudiantes cargados</h3>
+            <p class="msg" id="configSummary"></p>
+            <p style="font-size:.84rem;color:var(--muted);margin-bottom:.7rem">Grupos detectados:</p>
+            <div id="configGroups"></div>
+            <div class="actions-row" style="margin-top:1rem">
+              <button onclick="syncStudentsToSupabase()">Sincronizar lista a Supabase</button>
+              <button class="btn-red btn-sm" onclick="clearAllData()">Borrar todos los datos</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function k(suffix) {
+      return IUBModuleContext.storageKey(suffix);
+    }
+    const ATT_CODES = ["P", "T", "F", "M", "I"];
+
+    let currentTab = "live";
+    let importedData = null;
+    let lastImportMeta = null;
+
+    function unlock() {
+      /* Reemplazado por TeacherAuth.bindLoginForm — ver bootApp() */
+    }
+
+    function bootApp() {
+      var entry = IUBModuleContext.requireSelected("index.html");
+      if (!entry) return;
+      document.getElementById("moduleSubtitle").textContent =
+        entry.moduleCode + " · " + entry.narrative + " — " + entry.offeringCode;
+      var ah = document.getElementById("linkAhorcado");
+      if (ah && entry.studentSite) {
+        ah.href = entry.studentSite.replace(/\/$/, "") + "/JuegoDelAhorcado/index.html";
+        ah.hidden = false;
+      }
+      TeacherAuth.requireAuth({
+        onFail: function () { window.location.href = "index.html"; },
+        onSuccess: function () {
+          document.getElementById("attDate").value = classSessionDate();
+          updateAttDateHint();
+          wireLiveActions();
+          init();
+          showTab(tabFromHash());
+          if (window.IUBStudentDashboard) IUBStudentDashboard.renderGroupProgress("groupProgressPanel");
+          if (window.IUBAcademicRules) IUBAcademicRules.renderTeacherAttendanceReport("teacherAttendancePanel");
+        },
+      });
+    }
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function getClassMeta() {
+      try { return JSON.parse(localStorage.getItem(k('class_meta_v1')) || "{}"); }
+      catch(e) { return {}; }
+    }
+
+    function setClassMeta(meta) {
+      localStorage.setItem(k('class_meta_v1'), JSON.stringify(meta || {}));
+    }
+
+    function selectedAttGroup() {
+      const el = document.getElementById("attGroup");
+      return el && el.value ? el.value : "";
+    }
+
+    function groupSchedule() {
+      const grupo = selectedAttGroup();
+      return window.IUBGroupSchedules && grupo ? IUBGroupSchedules.forGrupo(grupo) : null;
+    }
+
+    function classWeekday() {
+      const gs = groupSchedule();
+      if (gs && gs.sessions && gs.sessions.length) return gs.sessions[0].weekday;
+      const meta = getClassMeta();
+      return typeof meta.weekday === "number" ? meta.weekday : 4;
+    }
+
+    function classDayLabel() {
+      const gs = groupSchedule();
+      if (gs) return gs.label || gs.horario;
+      const meta = getClassMeta();
+      return meta.dayLabel || "JUEVES";
+    }
+
+    function classSessionDate(refDate, weekday) {
+      const gs = groupSchedule();
+      const target = typeof weekday === "number" ? weekday : classWeekday();
+      if (gs && window.IUBGroupSchedules) {
+        return IUBGroupSchedules.sessionDateForWeekday(refDate, target);
+      }
+      const d = refDate ? new Date(refDate) : new Date();
+      const day = d.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      monday.setDate(monday.getDate() + mondayOffset);
+      const session = new Date(monday);
+      session.setDate(monday.getDate() + (target === 0 ? 6 : target - 1));
+      return session.toISOString().slice(0, 10);
+    }
+
+    function isClassSessionDate(dateStr) {
+      if (!dateStr) return false;
+      const grupo = selectedAttGroup();
+      if (grupo && window.IUBGroupSchedules) {
+        const ok = IUBGroupSchedules.isSessionDate(grupo, dateStr);
+        if (ok !== null) return ok;
+      }
+      const parts = dateStr.split("-");
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12);
+      return d.getDay() === classWeekday();
+    }
+
+    function formatDateEs(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12);
+      return d.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }
+
+    function updateAttDateHint() {
+      const el = document.getElementById("attDateHint");
+      if (!el) return;
+      const gs = groupSchedule();
+      const label = classDayLabel();
+      const dateVal = document.getElementById("attDate").value;
+      const suggested = (gs && window.IUBGroupSchedules)
+        ? IUBGroupSchedules.nearestSessionDate(selectedAttGroup(), dateVal || undefined)
+        : classSessionDate();
+      const horario = (gs && gs.horario) || getClassMeta().horario || label;
+      const hours = (gs && dateVal && window.IUBGroupSchedules)
+        ? IUBGroupSchedules.hoursForSession(selectedAttGroup(), dateVal)
+        : null;
+      if (isClassSessionDate(dateVal)) {
+        el.textContent = "Sesión de clase: " + formatDateEs(dateVal) + " (" + horario + (hours ? " · " + hours + " h" : "") + ").";
+        el.className = "msg ok";
+      } else {
+        el.textContent = "Horario del grupo: " + label + " (" + horario + "). Fecha sugerida: " + formatDateEs(suggested) + ".";
+        el.className = "msg err";
+      }
+    }
+
+    function useClassSessionDate(weekday) {
+      document.getElementById("attDate").value = classSessionDate(undefined, weekday);
+      updateAttDateHint();
+      renderAttendance();
+    }
+
+    function updateSessionButtons() {
+      const host = document.getElementById("attSessionButtons");
+      if (!host) return;
+      host.innerHTML = "";
+      const gs = groupSchedule();
+      if (gs && gs.sessions && gs.sessions.length) {
+        gs.sessions.forEach(function (s) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn-sm btn-gold";
+          btn.textContent = "Usar " + s.dayLabel.toLowerCase() + " (" + s.hours + " h)";
+          btn.onclick = function () { useClassSessionDate(s.weekday); };
+          host.appendChild(btn);
+        });
+        return;
+      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-sm btn-gold";
+      btn.textContent = "Usar " + classDayLabel().toLowerCase() + " de esta semana";
+      btn.onclick = function () { useClassSessionDate(); };
+      host.appendChild(btn);
+    }
+
+    function onAttGroupChange() {
+      updateSessionButtons();
+      const grupo = selectedAttGroup();
+      if (grupo && window.IUBGroupSchedules) {
+        const near = IUBGroupSchedules.nearestSessionDate(grupo);
+        if (near) document.getElementById("attDate").value = near;
+      }
+      updateAttDateHint();
+      renderAttendance();
+    }
+
+    function updateClassDayButtonLabel() {
+      updateSessionButtons();
+    }
+
+    function normalizeStudentHorario(s) {
+      if (!window.IUBGroupSchedules || !s.grupo) return s;
+      return Object.assign({}, s, {
+        horario: IUBGroupSchedules.normalizeHorario(s.grupo, s.horario)
+      });
+    }
+
+    function nowISO() {
+      return new Date().toISOString();
+    }
+
+    function getStudents() {
+      try { return JSON.parse(localStorage.getItem(k('students_v1')) || "[]"); }
+      catch(e) { return []; }
+    }
+
+    function setStudents(arr) {
+      localStorage.setItem(k('students_v1'), JSON.stringify(arr));
+    }
+
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem(k('participation_history')) || "[]"); }
+      catch(e) { return []; }
+    }
+
+    function setHistory(arr) {
+      localStorage.setItem(k('participation_history'), JSON.stringify(arr));
+    }
+
+    function getAttendance() {
+      try { return JSON.parse(localStorage.getItem(k('attendance')) || "{}"); }
+      catch(e) { return {}; }
+    }
+
+    function setAttendance(obj) {
+      localStorage.setItem(k('attendance'), JSON.stringify(obj));
+      try { document.dispatchEvent(new CustomEvent("iub:attendance-updated")); } catch (e) { /* ignore */ }
+    }
+
+    function getTodayPoints() {
+      try { return JSON.parse(localStorage.getItem(k('today_points')) || "{}"); }
+      catch(e) { return {}; }
+    }
+
+    function setTodayPoints(obj) {
+      localStorage.setItem(k('today_points'), JSON.stringify(obj));
+    }
+
+    function getAttLog() {
+      try { return JSON.parse(localStorage.getItem(k('attendance_log_v1')) || "[]"); }
+      catch(e) { return []; }
+    }
+
+    function setAttLog(arr) {
+      localStorage.setItem(k('attendance_log_v1'), JSON.stringify(arr));
+    }
+
+    function appendAttLog(entry) {
+      const log = getAttLog();
+      log.push(entry);
+      setAttLog(log);
+    }
+
+    function getCloudReport() {
+      try { return JSON.parse(localStorage.getItem(k('attendance_cloud_report')) || "[]"); }
+      catch(e) { return []; }
+    }
+
+    function setCloudReport(arr) {
+      localStorage.setItem(k('attendance_cloud_report'), JSON.stringify(arr));
+    }
+
+    function attStateValue(cell) {
+      if (cell == null || cell === "-") return "-";
+      if (typeof cell === "string") return cell;
+      return cell.estado || "-";
+    }
+
+    function wireLiveActions() {
+      const panel = document.getElementById("tab-live");
+      if (!panel || panel.dataset.wired === "1") return;
+      panel.dataset.wired = "1";
+      panel.addEventListener("click", function(e) {
+        const btn = e.target.closest("button[data-live-points]");
+        if (!btn) return;
+        e.preventDefault();
+        giveToStudent(btn.getAttribute("data-cc"), Number(btn.getAttribute("data-live-points")));
+      });
+    }
+
+    function ccAttr(cc) {
+      return String(cc ?? "").replace(/[^\d]/g, "");
+    }
+
+    function showTab(name) {
+      currentTab = name;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`.tab-btn[onclick*="${name}"]`).classList.add("active");
+      document.getElementById("tab-" + name).classList.add("active");
+      if (name === "live") renderLive();
+      if (name === "attendance") renderAttendance();
+      if (name === "history") renderHistory();
+      if (name === "validate" && window.IUBTeacherWeekValidator) IUBTeacherWeekValidator.mount("teacherWeekValidatorRoot");
+      if (name === "report") {
+        renderReport();
+        if (window.IUBStudentDashboard) IUBStudentDashboard.renderGroupProgress("groupProgressPanel");
+        if (window.IUBAcademicRules) IUBAcademicRules.renderTeacherAttendanceReport("teacherAttendancePanel");
+      }
+      if (name === "config") renderConfig();
+    }
+
+    function tabFromHash() {
+      if (location.hash === "#importar-estudiantes" || location.hash === "#config") return "config";
+      if (location.hash === "#report") return "report";
+      if (location.hash === "#attendance") return "attendance";
+      if (location.hash === "#validar-semana" || location.hash === "#validate") return "validate";
+      if (location.hash === "#history") return "history";
+      return "live";
+    }
+
+    window.addEventListener("hashchange", () => {
+      if (!document.getElementById("app").hidden) showTab(tabFromHash());
+    });
+
+    function esc(s) { return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m])); }
+
+    function init() {
+      const meta = getClassMeta();
+      if (typeof meta.weekday !== "number") {
+        setClassMeta({ weekday: 4, dayLabel: "JUEVES", horario: "JUEVES" });
+      }
+      updateClassDayButtonLabel();
+      updateAttDateHint();
+      fetchStudentsFromSupabase().finally(function() {
+        fillGroupSelect("liveGroup");
+        fillGroupSelect("attGroup");
+        renderLive();
+        renderConfig();
+      });
+    }
+
+    async function fetchStudentsFromSupabase() {
+      const url = window.SUPABASE_URL || localStorage.getItem("iub_supabase_url");
+      const key = window.SUPABASE_KEY || localStorage.getItem("iub_supabase_key");
+      if (!url || !key) return false;
+      const offering = encodeURIComponent(
+        (typeof GamifSDK !== "undefined" && GamifSDK.getOfferingCode()) || "TGA04-2026-2"
+      );
+      try {
+        let res = await fetch(url + "/rest/v1/v_legacy_students?select=cc,name,grupo,horario&offering_code=eq." + offering + "&order=name", {
+          headers: { apikey: key, Authorization: "Bearer " + key }
+        });
+        if (!res.ok) {
+          console.warn("v_legacy_students:", res.status);
+          return false;
+        }
+        const data = await res.json();
+        if (data && data.length) {
+          const students = data.map(function(s) {
+            return normalizeStudentHorario({
+              name: s.name,
+              cc: s.cc,
+              grupo: s.grupo || "",
+              horario: s.horario || ""
+            });
+          });
+          setStudents(students);
+          return true;
+        }
+      } catch(e) {
+        console.warn("fetchStudentsFromSupabase:", e.message);
+      }
+      return false;
+    }
+
+    function fillGroupSelect(id) {
+      const students = getStudents();
+      const select = document.getElementById(id);
+      const current = select.value;
+      const groups = [...new Set(students.map(s => s.grupo).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">Todos</option>' + groups.map(g => `<option>${esc(g)}</option>`).join("");
+      select.value = current;
+    }
+
+    // ── TAB: Clase en Vivo ──────────────────────────────────
+    function renderLive() {
+      const students = getStudents();
+      const group = document.getElementById("liveGroup").value;
+      const q = document.getElementById("liveSearch").value.toLowerCase();
+      const todayPts = getTodayPoints();
+
+      if (!students.length) {
+        document.getElementById("mLiveStudents").textContent = "0";
+        document.getElementById("mLivePoints").textContent = "0";
+        document.getElementById("mLiveActive").textContent = "0";
+        document.getElementById("liveRows").innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted)">
+          No hay estudiantes cargados.<br>
+          Ve al tab <strong>Configuracion</strong> y pega el texto del reporte PDF de Academusoft para importar la lista.
+        </td></tr>`;
+        return;
+      }
+
+      let filtered = students;
+      if (group) filtered = filtered.filter(s => s.grupo === group);
+      if (q) filtered = filtered.filter(s => (`${s.name} ${s.cc}`.toLowerCase().includes(q)));
+      filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+      document.getElementById("mLiveStudents").textContent = students.length;
+      document.getElementById("mLivePoints").textContent = Object.values(todayPts).reduce((s, v) => s + v, 0);
+      document.getElementById("mLiveActive").textContent = Object.keys(todayPts).length;
+
+      document.getElementById("liveRows").innerHTML = filtered.map(s => {
+        const pts = todayPts[s.cc] || 0;
+        return `<tr>
+          <td><input type="checkbox" value="${ccAttr(s.cc)}" class="live-chk"></td>
+          <td><strong>${esc(s.name)}</strong></td>
+          <td>${esc(s.cc)}</td>
+          <td>${esc(s.grupo || "-")}</td>
+          <td>${pts}</td>
+          <td>${getStudentTotalXP(s.cc)}</td>
+          <td>
+            <button type="button" class="btn-sm" data-cc="${ccAttr(s.cc)}" data-live-points="1">+1</button>
+            <button type="button" class="btn-sm" data-cc="${ccAttr(s.cc)}" data-live-points="3">+3</button>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    function getStudentTotalXP(cc) {
+      return getHistory()
+        .filter(function(h) { return h.cc === cc; })
+        .reduce(function(sum, h) { return sum + (Number(h.points) || 0); }, 0);
+    }
+
+    async function syncPointsToCloud(entries) {
+      if (typeof GamifSDK === "undefined" || !entries.length) {
+        return { ok: false, reason: "no_sdk", count: 0, failed: entries.length };
+      }
+      var events = entries.map(function(e) {
+        return { cc: e.cc, points: e.points, type: e.type, name: e.name, ts: e.ts };
+      });
+      return await GamifSDK.syncParticipation(events);
+    }
+
+    async function givePoints(amount) {
+      const checks = document.querySelectorAll(".live-chk:checked");
+      if (!checks.length) {
+        document.getElementById("liveMsg").textContent = "Selecciona al menos un estudiante.";
+        document.getElementById("liveMsg").className = "msg err";
+        return;
+      }
+      const history = getHistory();
+      const todayPts = getTodayPoints();
+      const label = amount === 1 ? "Asistencia" : amount === 3 ? "Participacion" : "Destacado";
+      const now = nowISO();
+      const batch = [];
+      checks.forEach(cb => {
+        const cc = cb.value;
+        todayPts[cc] = (todayPts[cc] || 0) + amount;
+        const entry = { ts: now, cc, name: findStudentName(cc), type: label, points: amount };
+        history.push(entry);
+        batch.push(entry);
+      });
+      setTodayPoints(todayPts);
+      setHistory(history);
+      document.getElementById("liveMsg").textContent = "Guardando en la nube...";
+      document.getElementById("liveMsg").className = "msg";
+      const cloud = await syncPointsToCloud(batch);
+      if (cloud.ok) {
+        document.getElementById("liveMsg").textContent = `+${amount} pts otorgados a ${checks.length} estudiante(s). Sincronizado (${cloud.count}).`;
+        document.getElementById("liveMsg").className = "msg ok";
+      } else {
+        document.getElementById("liveMsg").textContent = `+${amount} pts locales. Nube: ${cloud.failed || 0} error(es). Revisa consola (F12).`;
+        document.getElementById("liveMsg").className = "msg err";
+      }
+      renderLive();
+    }
+
+    async function giveToStudent(cc, amount) {
+      if (!cc) return;
+      const history = getHistory();
+      const todayPts = getTodayPoints();
+      const label = amount === 1 ? "Asistencia" : amount === 3 ? "Participacion" : "Destacado";
+      const entry = { ts: nowISO(), cc, name: findStudentName(cc), type: label, points: amount };
+      todayPts[cc] = (todayPts[cc] || 0) + amount;
+      history.push(entry);
+      setTodayPoints(todayPts);
+      setHistory(history);
+      document.getElementById("liveMsg").textContent = `Guardando +${amount} para ${entry.name}...`;
+      document.getElementById("liveMsg").className = "msg";
+      const cloud = await syncPointsToCloud([entry]);
+      if (cloud.ok) {
+        document.getElementById("liveMsg").textContent = `+${amount} pts a ${entry.name}. Sincronizado en Supabase.`;
+        document.getElementById("liveMsg").className = "msg ok";
+      } else {
+        document.getElementById("liveMsg").textContent = `+${amount} pts locales a ${entry.name}. Error nube (HTTP ${cloud.status || "?"}).`;
+        document.getElementById("liveMsg").className = "msg err";
+      }
+      renderLive();
+    }
+
+    function clearToday() {
+      if (!confirm("Borrar todos los puntos de hoy?")) return;
+      setTodayPoints({});
+      renderLive();
+    }
+
+    function findStudentName(cc) {
+      const students = getStudents();
+      const s = students.find(s => String(s.cc) === String(cc));
+      return s ? s.name : cc;
+    }
+
+    function findStudentGrupo(cc) {
+      const students = getStudents();
+      const s = students.find(s => String(s.cc) === String(cc));
+      return s ? (s.grupo || "") : "";
+    }
+
+    function attLabel(estado) {
+      if (estado === "P") return "Presente";
+      if (estado === "T") return "Tardanza";
+      if (estado === "F") return "Ausente";
+      if (estado === "M") return "Motivo";
+      if (estado === "I") return "Incapacitado";
+      return estado;
+    }
+
+    function attExportCode(v) {
+      if (v === "P" || v === "T" || v === "F" || v === "M" || v === "I") return v;
+      return "-";
+    }
+
+    // ── TAB: Asistencia ─────────────────────────────────────
+    function renderAttendance() {
+      const students = getStudents();
+      const group = document.getElementById("attGroup").value;
+      const q = document.getElementById("attSearch").value.toLowerCase();
+      const date = document.getElementById("attDate").value || todayStr();
+      const att = getAttendance();
+
+      if (!students.length) {
+        document.getElementById("mAttPresent").textContent = "0";
+        document.getElementById("mAttLate").textContent = "0";
+        document.getElementById("mAttAbsent").textContent = "0";
+        document.getElementById("mAttPct").textContent = "0%";
+        document.getElementById("attRows").innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--muted)">
+          No hay estudiantes cargados.<br>
+          Ve al tab <strong>Configuracion</strong> y pega el texto del reporte PDF de Academusoft para importar la lista.
+        </td></tr>`;
+        return;
+      }
+
+      let filtered = students;
+      if (group) filtered = filtered.filter(s => s.grupo === group);
+      if (q) filtered = filtered.filter(s => (`${s.name} ${s.cc}`.toLowerCase().includes(q)));
+      filtered = filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+      const dayKey = date;
+      const dayAtt = att[dayKey] || {};
+      const dayValues = Object.values(dayAtt).map(attStateValue);
+      const pCount = dayValues.filter(v => v === "P").length;
+      const tCount = dayValues.filter(v => v === "T").length;
+      const fCount = dayValues.filter(v => v === "F").length;
+      const mCount = dayValues.filter(v => v === "M").length;
+      const iCount = dayValues.filter(v => v === "I").length;
+      const total = filtered.length || 1;
+
+      document.getElementById("mAttPresent").textContent = pCount;
+      document.getElementById("mAttLate").textContent = tCount;
+      document.getElementById("mAttAbsent").textContent = fCount;
+      document.getElementById("mAttMotivo").textContent = mCount;
+      document.getElementById("mAttIncap").textContent = iCount;
+      document.getElementById("mAttPct").textContent = Math.round(pCount / total * 100) + "%";
+
+      document.getElementById("attRows").innerHTML = filtered.map(s => {
+        const state = attStateValue(dayAtt[s.cc]);
+        const pct = calcAttendancePct(s.cc);
+        const ccSafe = ccAttr(s.cc);
+        return `<tr>
+          <td><strong>${esc(s.name)}</strong></td>
+          <td>${esc(s.cc)}</td>
+          <td>${esc(s.grupo || "-")}</td>
+          <td>
+            <div class="att-actions">
+              <button type="button" class="att-btn p${state==='P'?' sel':''}" onclick="setAtt('${ccSafe}','P')">Presente</button>
+              <button type="button" class="att-btn t${state==='T'?' sel':''}" onclick="setAtt('${ccSafe}','T')">Tarde</button>
+              <button type="button" class="att-btn f${state==='F'?' sel':''}" onclick="setAtt('${ccSafe}','F')">Ausente</button>
+              <button type="button" class="att-btn m${state==='M'?' sel':''}" onclick="setAtt('${ccSafe}','M')">Motivo</button>
+              <button type="button" class="att-btn i${state==='I'?' sel':''}" onclick="setAtt('${ccSafe}','I')">Incap.</button>
+            </div>
+          </td>
+          <td>${pct}%</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function setAtt(cc, state) {
+      const date = document.getElementById("attDate").value || classSessionDate();
+      const att = getAttendance();
+      if (!att[date]) att[date] = {};
+      const current = attStateValue(att[date][cc]);
+      const next = current === state ? "-" : state;
+      const ts = nowISO();
+      if (next === "-") {
+        att[date][cc] = "-";
+      } else {
+        att[date][cc] = { estado: next, ts: ts };
+        appendAttLog({
+          ts: ts,
+          fecha: date,
+          cc: cc,
+          name: findStudentName(cc),
+          grupo: findStudentGrupo(cc),
+          estado: next,
+          origen: "local"
+        });
+      }
+      setAttendance(att);
+      document.getElementById("attMsg").textContent = next === "-"
+        ? "Marca de asistencia quitada."
+        : `${attLabel(next)} registrado a las ${new Date(ts).toLocaleTimeString()}.`;
+      document.getElementById("attMsg").className = "msg ok";
+      renderAttendance();
+      updateAttDateHint();
+    }
+
+    function markAllAttendance(state) {
+      const date = document.getElementById("attDate").value || classSessionDate();
+      const students = getStudents();
+      const group = document.getElementById("attGroup").value;
+      let filtered = students;
+      if (group) filtered = filtered.filter(s => s.grupo === group);
+      const att = getAttendance();
+      if (!att[date]) att[date] = {};
+      const ts = nowISO();
+      filtered.forEach(s => {
+        const cc = ccAttr(s.cc);
+        att[date][cc] = { estado: state, ts: ts };
+        appendAttLog({
+          ts: ts,
+          fecha: date,
+          cc: cc,
+          name: s.name,
+          grupo: s.grupo || "",
+          estado: state,
+          origen: "local"
+        });
+      });
+      setAttendance(att);
+      document.getElementById("attMsg").textContent = `${attLabel(state)} masivo: ${filtered.length} estudiantes (${new Date(ts).toLocaleString()}).`;
+      document.getElementById("attMsg").className = "msg ok";
+      renderAttendance();
+      updateAttDateHint();
+    }
+
+    function clearTodayAtt() {
+      if (!confirm("Limpiar asistencia de esta fecha?")) return;
+      const date = document.getElementById("attDate").value || classSessionDate();
+      const att = getAttendance();
+      delete att[date];
+      setAttendance(att);
+      renderAttendance();
+    }
+
+    function calcAttendancePct(cc) {
+      const att = getAttendance();
+      const dates = Object.keys(att);
+      if (!dates.length) return 100;
+      let total = 0, present = 0;
+      for (const d of dates) {
+        const v = attStateValue((att[d] || {})[cc]);
+        if (v === "P" || v === "T" || v === "F") {
+          total++;
+          if (v === "P") present++;
+        }
+      }
+      return total ? Math.round(present / total * 100) : 100;
+    }
+
+    function exportAttendanceCSV() {
+      const att = getAttendance();
+      const dates = Object.keys(att).sort();
+      const students = getStudents();
+      if (!dates.length) { alert("No hay datos de asistencia."); return; }
+      const rows = [["Estudiante", "CC", "Grupo", ...dates, "% Asistencia"]];
+      for (const s of students.sort((a,b) => a.name.localeCompare(b.name))) {
+        const row = [s.name, s.cc, s.grupo || ""];
+        let p = 0, t = 0;
+        for (const d of dates) {
+          const v = attStateValue((att[d] || {})[s.cc]);
+          row.push(attExportCode(v));
+          if (v === "P") p++;
+          else if (v === "T" || v === "F") t++;
+        }
+        row.push(dates.length ? Math.round(p / dates.length * 100) + "%" : "");
+        rows.push(row);
+      }
+      downloadCSV(rows, `Asistencia_TGA04_${todayStr()}.csv`);
+    }
+
+    function exportAttendanceXLSX() {
+      const att = getAttendance();
+      const dates = Object.keys(att).sort();
+      const students = getStudents();
+      if (!dates.length) { alert("No hay datos de asistencia."); return; }
+      const rows = [["Estudiante", "CC", "Grupo", ...dates, "% Asistencia"]];
+      for (const s of students.sort((a,b) => a.name.localeCompare(b.name))) {
+        const row = [s.name, s.cc, s.grupo || ""];
+        let p = 0;
+        for (const d of dates) {
+          const v = attStateValue((att[d] || {})[s.cc]);
+          row.push(attExportCode(v));
+          if (v === "P") p++;
+        }
+        row.push(dates.length ? Math.round(p / dates.length * 100) + "%" : "");
+        rows.push(row);
+      }
+      downloadXLSX(rows, `Asistencia_TGA04_${todayStr()}.xlsx`, "Asistencia");
+    }
+
+    async function syncAttendanceToSupabase() {
+      if (typeof GamifSDK === "undefined") { alert("Supabase no configurado."); return; }
+      const att = getAttendance();
+      const rows = [];
+      for (const [fecha, states] of Object.entries(att)) {
+        for (const [cc, cell] of Object.entries(states)) {
+          const estado = attStateValue(cell);
+          if (estado === "-") continue;
+          rows.push({ cc, fecha, estado });
+        }
+      }
+      if (!rows.length) { alert("Sin datos para sincronizar."); return; }
+      document.getElementById("attMsg").textContent = "Sincronizando...";
+      try {
+        const result = await GamifSDK.syncAttendanceRows(rows);
+        if (result.ok) {
+          document.getElementById("attMsg").textContent = `Asistencia sincronizada (${result.count} registros).`;
+          document.getElementById("attMsg").className = "msg ok";
+        } else {
+          throw new Error((result.failed || 0) + " filas fallaron");
+        }
+      } catch(e) {
+        document.getElementById("attMsg").textContent = "Error: " + e.message;
+        document.getElementById("attMsg").className = "msg err";
+      }
+    }
+
+    // ── TAB: Historial ──────────────────────────────────────
+    function renderHistory() {
+      const history = getHistory();
+      const q = document.getElementById("histSearch").value.toLowerCase();
+      let rows = history;
+      if (q) rows = rows.filter(r => (`${r.name} ${r.cc}`.toLowerCase().includes(q)));
+      rows = rows.reverse();
+      document.getElementById("histRows").innerHTML = rows.slice(0, 500).map(r => `<tr>
+        <td>${new Date(r.ts).toLocaleString()}</td>
+        <td>${esc(r.name)}</td>
+        <td>${esc(r.cc)}</td>
+        <td><span class="chip p">${esc(r.type)}</span></td>
+        <td>+${r.points}</td>
+      </tr>`).join("");
+    }
+
+    function exportHistory() {
+      const history = getHistory();
+      if (!history.length) { alert("Sin historial."); return; }
+      const header = "Fecha_Hora\tEstudiante\tCC\tTipo\tPuntos\n";
+      const body = history.map(r => [new Date(r.ts).toISOString(), r.name, r.cc, r.type, r.points].join("\t")).join("\n");
+      const blob = new Blob([header + body], { type: "text/tab-separated-values" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Participacion_TGA04_${todayStr()}.tsv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function clearHistory() {
+      if (!confirm("Borrar TODO el historial de participacion?")) return;
+      setHistory([]);
+      renderHistory();
+    }
+
+    function buildReportRows() {
+      const local = getAttLog().map(function(r) {
+        return Object.assign({ origen: r.origen || "local" }, r);
+      });
+      const cloud = getCloudReport();
+      const merged = local.concat(cloud);
+      merged.sort(function(a, b) {
+        return new Date(b.ts || b.fecha).getTime() - new Date(a.ts || a.fecha).getTime();
+      });
+      return merged;
+    }
+
+    function renderReport() {
+      const rows = buildReportRows();
+      const tbody = document.getElementById("reportRows");
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--muted)">
+          Sin registros aun. Marca asistencia en la pestaña <strong>Asistencia</strong>.
+        </td></tr>`;
+        document.getElementById("reportMsg").textContent = "0 registros.";
+        return;
+      }
+      tbody.innerHTML = rows.map(function(r) {
+        const dt = new Date(r.ts || r.fecha);
+        const fecha = r.fecha || dt.toISOString().slice(0, 10);
+        const hora = r.ts ? dt.toLocaleTimeString() : "—";
+        return `<tr>
+          <td>${esc(fecha)}</td>
+          <td>${esc(hora)}</td>
+          <td><strong>${esc(r.name || findStudentName(r.cc))}</strong></td>
+          <td>${esc(r.cc)}</td>
+          <td>${esc(r.grupo || findStudentGrupo(r.cc) || "-")}</td>
+          <td>${esc(attLabel(r.estado))}</td>
+          <td>${esc(r.origen || "local")}</td>
+        </tr>`;
+      }).join("");
+      document.getElementById("reportMsg").textContent = rows.length + " registros en el reporte.";
+      document.getElementById("reportMsg").className = "msg ok";
+    }
+
+    async function fetchReportFromCloud() {
+      if (typeof GamifSDK === "undefined") {
+        document.getElementById("reportMsg").textContent = "Supabase no configurado.";
+        return;
+      }
+      document.getElementById("reportMsg").textContent = "Cargando desde Supabase...";
+      const offering = encodeURIComponent(GamifSDK.getOfferingCode() || "TGA04-2026-2");
+      try {
+        const res = await fetch(
+          GamifSDK.sbUrl() + "/rest/v1/v_legacy_attendance?select=cc,fecha,estado,created_at,grupo,offering_code&offering_code=eq." + offering + "&order=created_at.desc",
+          { headers: { apikey: GamifSDK.sbKey(), Authorization: "Bearer " + GamifSDK.sbKey() } }
+        );
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const mapped = (data || []).map(function(r) {
+          return {
+            ts: r.created_at,
+            fecha: r.fecha,
+            cc: r.cc,
+            name: findStudentName(r.cc),
+            grupo: r.grupo || findStudentGrupo(r.cc),
+            estado: r.estado,
+            origen: "supabase"
+          };
+        });
+        setCloudReport(mapped);
+        renderReport();
+        document.getElementById("reportMsg").textContent = mapped.length + " registros cargados desde Supabase.";
+        document.getElementById("reportMsg").className = "msg ok";
+      } catch (e) {
+        document.getElementById("reportMsg").textContent = "Error: " + e.message;
+        document.getElementById("reportMsg").className = "msg err";
+      }
+    }
+
+    function reportSheetRows() {
+      const rows = buildReportRows();
+      const sheet = [["Fecha", "Hora", "Estudiante", "CC", "Grupo", "Estado", "Origen"]];
+      rows.forEach(function(r) {
+        const dt = new Date(r.ts || r.fecha);
+        sheet.push([
+          r.fecha || dt.toISOString().slice(0, 10),
+          r.ts ? dt.toLocaleTimeString() : "",
+          r.name || findStudentName(r.cc),
+          r.cc,
+          r.grupo || findStudentGrupo(r.cc),
+          attLabel(r.estado),
+          r.origen || "local"
+        ]);
+      });
+      return sheet;
+    }
+
+    function exportReportCSV() {
+      const rows = buildReportRows();
+      if (!rows.length) { alert("Sin registros para exportar."); return; }
+      downloadCSV(reportSheetRows(), "Reporte_Asistencia_TGA04_" + todayStr() + ".csv");
+    }
+
+    function exportReportXLSX() {
+      const rows = buildReportRows();
+      if (!rows.length) { alert("Sin registros para exportar."); return; }
+      downloadXLSX(reportSheetRows(), "Reporte_Asistencia_TGA04_" + todayStr() + ".xlsx", "Reporte");
+    }
+
+    // ── TAB: Configuracion ──────────────────────────────────
+    function renderConfig() {
+      const students = getStudents();
+      document.getElementById("configSummary").textContent = `${students.length} estudiantes cargados.`;
+      const groups = [...new Set(students.map(s => s.grupo).filter(Boolean))].sort();
+      document.getElementById("configGroups").innerHTML = groups.map(g => {
+        const count = students.filter(s => s.grupo === g).length;
+        return `<div style="margin-bottom:.3rem"><span class="chip p">${esc(g)}</span> ${count} estudiantes</div>`;
+      }).join("") || "<p style='color:var(--muted)'>Sin grupos definidos.</p>";
+    }
+
+    function studentImporter() {
+      if (!window.IUBImportStudents) throw new Error("El importador aun no termino de cargar. Recarga la pagina e intenta de nuevo.");
+      return window.IUBImportStudents;
+    }
+
+    async function importSelectedFile() {
+      const file = document.getElementById("importFile").files[0];
+      const msg = document.getElementById("importMsg");
+      msg.className = "msg";
+      msg.style.whiteSpace = "";
+      if (!file) { msg.textContent = "Selecciona el PDF, TXT o CSV de Academusoft primero."; return; }
+      msg.textContent = `Leyendo ${file.name}...`;
+      document.getElementById("importPreview").hidden = true;
+      document.getElementById("importActions").hidden = true;
+      try {
+        const text = await studentImporter().extractTextFromStudentFile(file);
+        document.getElementById("importText").value = text;
+        applyImportText(text, file.name);
+      } catch (err) {
+        msg.textContent = `No se pudo importar el archivo: ${err.message}`;
+        msg.className = "msg err";
+      }
+    }
+
+    function parseImportText() {
+      const text = document.getElementById("importText").value.trim();
+      if (!text) { document.getElementById("importMsg").textContent = "Pega el texto del reporte primero."; return; }
+      applyImportText(text, "texto pegado");
+    }
+
+    function applyImportText(text, sourceLabel) {
+      const msg = document.getElementById("importMsg");
+      msg.className = "msg";
+      msg.style.whiteSpace = "";
+      const result = studentImporter().parseAcademusoftStudents(text);
+      const students = result.students;
+
+      if (!students.length) {
+        const hint = result.unmatched.length
+          ? `Lineas no reconocidas (${result.unmatched.length}):\n${result.unmatched.slice(0, 5).join("\n")}`
+          : "Formato esperado: reporte Academusoft con columnas No., Documento, Codigo y Nombre Completo.";
+        msg.textContent = "No se encontraron estudiantes. " + hint;
+        msg.style.whiteSpace = "pre-wrap";
+        msg.className = "msg err";
+        importedData = null;
+        document.getElementById("importPreview").hidden = true;
+        document.getElementById("importActions").hidden = true;
+        return;
+      }
+
+      importedData = students;
+      lastImportMeta = result.meta;
+      const groupLabel = result.meta.grupo ? ` (${result.meta.grupo})` : "";
+      const dayLabel = result.meta.dayLabel ? ` · Clase: ${result.meta.dayLabel}` : "";
+      msg.textContent = `${students.length} estudiantes detectados${groupLabel}${dayLabel} desde ${sourceLabel}.`;
+      msg.className = "msg ok";
+      const preview = document.getElementById("importPreview");
+      preview.hidden = false;
+      preview.textContent = importedData.slice(0, 20).map(s => `${s.name}  ${s.cc}  ${s.grupo || ""}`).join("\n")
+        + (importedData.length > 20 ? `\n... y ${importedData.length - 20} mas` : "");
+      document.getElementById("importActions").hidden = false;
+      document.getElementById("importLoadBtn").textContent = `Cargar ${importedData.length} estudiantes`;
+    }
+
+    function loadImported() {
+      if (!importedData) return;
+      const existing = getStudents();
+      const byCC = new Map(existing.map(s => [s.cc, s]));
+      for (const s of importedData) {
+        byCC.set(s.cc, s);
+      }
+      const final = [...byCC.values()];
+      setStudents(final);
+      if (lastImportMeta) {
+        setClassMeta({
+          weekday: lastImportMeta.weekday,
+          dayLabel: lastImportMeta.dayLabel || "JUEVES",
+          horario: lastImportMeta.horario || lastImportMeta.dayLabel || "JUEVES",
+          grupo: lastImportMeta.grupo || ""
+        });
+        document.getElementById("attDate").value = classSessionDate();
+        updateAttDateHint();
+        updateClassDayButtonLabel();
+        lastImportMeta = null;
+      }
+      importedData = null;
+      document.getElementById("importPreview").hidden = true;
+      document.getElementById("importActions").hidden = true;
+      document.getElementById("importMsg").textContent = `${final.length} estudiantes totales cargados. Sincronizando a la nube...`;
+      document.getElementById("importMsg").className = "msg ok";
+      fillGroupSelect("liveGroup");
+      fillGroupSelect("attGroup");
+      renderConfig();
+      renderLive();
+      syncStudentsToSupabase();
+    }
+
+    function cancelImport() {
+      importedData = null;
+      document.getElementById("importPreview").hidden = true;
+      document.getElementById("importActions").hidden = true;
+      document.getElementById("importMsg").textContent = "Importacion cancelada.";
+    }
+
+    async function syncStudentsToSupabase() {
+      if (typeof GamifSDK === "undefined") { alert("Supabase no configurado."); return; }
+      const students = getStudents();
+      if (!students.length) { alert("No hay estudiantes para sincronizar."); return; }
+      document.getElementById("configSummary").textContent = "Sincronizando...";
+      try {
+        const offering = GamifSDK.getOfferingCode() || "TGA04-2026-2";
+        const payload = students.map(function(s) {
+          const row = normalizeStudentHorario(s);
+          return {
+            cc: row.cc,
+            name: row.name,
+            grupo: row.grupo || "",
+            horario: row.horario || ""
+          };
+        });
+        const res = await fetch(GamifSDK.sbUrl() + "/rest/v1/rpc/upsert_roster_students", {
+          method: "POST",
+          headers: {
+            apikey: GamifSDK.sbKey(),
+            Authorization: "Bearer " + GamifSDK.sbKey(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            p_offering_code: offering,
+            p_students: payload
+          })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const count = await res.json();
+        document.getElementById("configSummary").textContent =
+          (count || students.length) + " estudiantes sincronizados a Supabase.";
+      } catch(e) {
+        document.getElementById("configSummary").textContent = "Error: " + e.message;
+      }
+    }
+
+    function clearAllData() {
+      if (!confirm("BORRAR TODOS los datos de participacion, asistencia e historial? Esta accion no se puede deshacer.")) return;
+      setStudents([]);
+      setHistory([]);
+      setAttendance({});
+      setTodayPoints({});
+      importedData = null;
+      renderConfig();
+      renderLive();
+      renderAttendance();
+      renderHistory();
+      document.getElementById("importPreview").hidden = true;
+      document.getElementById("importActions").hidden = true;
+    }
+
+    // ── Utilidades ──────────────────────────────────────────
+    function downloadCSV(rows, filename) {
+      const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function downloadXLSX(rows, filename, sheetName) {
+      if (typeof XLSX === "undefined") {
+        alert("La libreria Excel aun no cargo. Recarga la pagina (Cmd+Shift+R) e intenta de nuevo.");
+        return;
+      }
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || "Reporte");
+      XLSX.writeFile(wb, filename);
+    }
+
+    document.addEventListener("DOMContentLoaded", bootApp);
+    document.addEventListener("iub:attendance-updated", function () {
+      if (currentTab === "report" && window.IUBAcademicRules) {
+        IUBAcademicRules.renderTeacherAttendanceReport("teacherAttendancePanel");
+      }
+    });
+  </script>
+</body>
+</html>

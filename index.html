@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consola docente IUB</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="js/supabase-config.js"></script>
+  <script src="js/module-context.js"></script>
+  <script src="js/teacher-auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    :root {
+      --primary: #1E2843; --accent: #2d3a5e; --gold: #FFDF2D;
+      --light-bg: #FAFAFA; --border: #DEDFE4; --muted: #546e7a; --radius: 12px;
+    }
+    body {
+      font-family: 'Open Sans', Arial, sans-serif;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      min-height: 100vh; color: #fff;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.2rem; }
+    h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: .3rem; }
+    .sub { opacity: .85; margin-bottom: 1.5rem; font-size: .95rem; }
+    .card {
+      background: #fff; color: #212121; border-radius: var(--radius);
+      padding: 1.2rem; box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+    label {
+      display: block; color: var(--muted); font-size: .78rem; font-weight: 800;
+      text-transform: uppercase; margin-bottom: .3rem;
+    }
+    input {
+      width: 100%; border: 1px solid var(--border); border-radius: 10px;
+      padding: .7rem .85rem; font-size: 1rem; margin-bottom: .85rem;
+    }
+    button, .module-btn {
+      border: none; border-radius: 10px; padding: .75rem 1rem;
+      font-weight: 800; cursor: pointer; font-family: inherit; font-size: .95rem;
+    }
+    .btn-primary { background: var(--gold); color: var(--primary); width: 100%; }
+    .msg { min-height: 1.2rem; font-size: .88rem; margin-top: .5rem; color: var(--muted); }
+    .msg.err { color: #c62828; }
+    .module-grid { display: grid; gap: .75rem; margin-top: 1rem; }
+    .module-btn {
+      display: block; width: 100%; text-align: left; background: var(--light-bg);
+      border: 1px solid var(--border); color: var(--primary); text-decoration: none;
+    }
+    .module-btn strong { display: block; font-size: 1rem; }
+    .module-btn span { font-size: .82rem; color: var(--muted); font-weight: 600; }
+    .module-btn:hover { border-color: var(--primary); background: #eef2ff; }
+    .who { font-size: .88rem; color: var(--muted); margin-bottom: .5rem; }
+    .logout {
+      margin-top: 1rem; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Consola docente IUB</h1>
+    <p class="sub">Un solo acceso para participación, asistencia y notas de todos los módulos.</p>
+
+    <section class="card" id="login">
+      <label for="teacherUser">Usuario docente</label>
+      <input id="teacherUser" type="text" autocomplete="username" placeholder="docente">
+      <label for="teacherPass">Contraseña</label>
+      <input id="teacherPass" type="password" autocomplete="current-password">
+      <button type="button" class="btn-primary" id="teacherLoginBtn">Entrar</button>
+      <p class="msg" id="teacherLoginMsg"></p>
+    </section>
+
+    <section class="card" id="module-picker" hidden>
+      <p class="who" id="whoami"></p>
+      <p style="font-weight:800;color:var(--primary);margin-bottom:.25rem">Elige el módulo de hoy</p>
+      <p class="msg" style="min-height:auto;margin-bottom:.5rem">Los datos se filtran por curso en el Supabase unificado.</p>
+      <div class="module-grid" id="moduleGrid"></div>
+      <button type="button" class="logout" id="logoutBtn">Cerrar sesión</button>
+    </section>
+  </div>
+
+  <script>
+    function renderModules(session) {
+      var grid = document.getElementById("moduleGrid");
+      var list = IUBModuleContext.listForSession(session);
+      grid.innerHTML = "";
+      if (!list.length) {
+        grid.innerHTML = "<p class=\"msg\">Sin módulos asignados a tu cuenta.</p>";
+        return;
+      }
+      list.forEach(function (entry) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "module-btn";
+        btn.innerHTML =
+          "<strong>" + entry.moduleCode + " — " + entry.title + "</strong>" +
+          "<span>" + entry.narrative + " · " + entry.offeringCode + "</span>";
+        btn.onclick = function () {
+          IUBModuleContext.select(entry.offeringCode);
+          window.location.href = "participacion.html";
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", function () {
+      TeacherAuth.logout();
+      document.getElementById("module-picker").hidden = true;
+      document.getElementById("login").hidden = false;
+      document.getElementById("teacherPass").value = "";
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var pre = IUBModuleContext.selectFromQuery();
+      if (pre && TeacherAuth.getSession()) {
+        window.location.href = "participacion.html";
+        return;
+      }
+
+      TeacherAuth.bindLoginForm({
+        loginId: "login",
+        appId: "module-picker",
+        onSuccess: function (session) {
+          document.getElementById("whoami").textContent =
+            "Hola, " + (session.display_name || session.username || "docente");
+          renderModules(session);
+        },
+      });
+
+      var existing = TeacherAuth.getSession();
+      if (existing) {
+        document.getElementById("login").hidden = true;
+        document.getElementById("module-picker").hidden = false;
+        document.getElementById("whoami").textContent =
+          "Hola, " + (existing.display_name || existing.username || "docente");
+        renderModules(existing);
+      }
+    });
+  </script>
+</body>
+</html>
