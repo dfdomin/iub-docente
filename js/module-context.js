@@ -32,10 +32,10 @@
     {
       moduleCode: "TD",
       offeringCode: "TD-2026-2",
-      title: "Toma de Decisiones",
+      title: "Transformación Digital en la Empresa",
       narrative: "Mercado360",
       prefix: "td",
-      studentSite: "",
+      studentSite: "https://dfdomin.github.io/td-inteligencia-negocios/",
     },
   ];
 
