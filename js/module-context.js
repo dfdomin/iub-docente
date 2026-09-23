@@ -23,11 +23,19 @@
     },
     {
       moduleCode: "ADM18",
+      offeringCode: "ADM18-2026-3",
+      title: "Procesamiento de la Información",
+      narrative: "LatamBox",
+      prefix: "adm18",
+      studentSite: "https://dfdomin.github.io/adm18-material/",
+    },
+    {
+      moduleCode: "ADM18",
       offeringCode: "ADM18-2026-2",
       title: "Procesamiento de la Información",
       narrative: "LatamBox",
       prefix: "adm18",
-      studentSite: "https://dfdomin.github.io/adm18-latambox/",
+      studentSite: "https://dfdomin.github.io/adm18-material/",
     },
     {
       moduleCode: "TD",
